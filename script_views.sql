@@ -20,11 +20,16 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	/* WHYYYYY ??? */
-AND SPE.spe_isvisible=true /* TO BE CHECKED */
-/*AND VIS.vis_uid<>86367 DOUBLON ??? */
+/*AND VIS.vis_uid<>86367 DOUBLON FIXED in test22 */
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT NULL
 ORDER BY eventID
+
+/*
+// hide the species to protect
+TO BE added
+AND spe_isconfidential = false
+*/
 
 CREATE VIEW IPT_SEBMS_OCCURENCE AS
 SELECT CONCAT(EXTRACT(year from VIS.vis_begintime), '-', EXTRACT(MONTH from VIS.vis_begintime), '-', EXTRACT(DAY from VIS.vis_begintime),':',VIS.vis_uid) AS eventID, 
@@ -40,14 +45,20 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
-AND SPE.spe_isvisible=true
-AND VIS.vis_uid<>86367
+/*AND VIS.vis_uid<>86367 DOUBLON FIXED in test22*/
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT NULL
 ORDER BY eventID
 
+/*
+// hide the species to protect
+TO BE added
+AND spe_isconfidential = false
+*/
 
+/*
 CREATE VIEW IPT_SEBMS_TAXON AS
 SELECT spe_dyntaxa AS taxonID, spe_familyname AS scientificName, 'species' AS taxonRank, '' AS kingdom, '' AS parentNameUsageID, "" AS acceptedNameUsageID
 FROM spe_species
-WHERE spe_isvisible=true; 
+WHERE 1; 
+*/

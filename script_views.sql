@@ -234,13 +234,6 @@ AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPE
 AND VIS.vis_windspeed IS NOT NULL;
 
 
-SELECT DISTINCT VIS.vis_uid,
-CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
-'Site category', 'Sunshine', 'Temperature', 'Wind direction', 'Wind Speed' AS measurementType,
-CASE WHEN SIT.sit_type='P' THEN 'Point/Punkt' WHEN SIT.sit_type='T' THEN 'Transect/Sling' END, vis_sunshine, vis_temperature, vis_winddirection, vis_windspeed AS measurementValue,
-'', '%', '°C', 'angular degrees', 'm/s' AS measurementUnit 
-
-
 /*
 select vip_vis_visitid, COUNT(*) AS tot from vip_visitparticipant 
 group by vip_vis_visitid

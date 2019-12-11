@@ -57,26 +57,11 @@ ORDER BY eventID
 
 
 
-
-
-/* SPECIES */
-CREATE TABLE IPT_SEBMS_SPECIES_TAXONRANK AS
-SELECT spe_uid, spe_familyname, spe_genusname, 
-CASE 
-	WHEN spe_uid=143 THEN 'order' 
-	WHEN spe_uid IN (142, 144) THEN 'speciesAggregate' 
-	WHEN (spe_genusname='' or spe_genusname is NULL) THEN 'family' 
-	ELSE 'species' 
-END AS taxonRank 
-FROM spe_species;
-/* see detailed list from Annelie pour les 11 qui sont des speciesAggregate ||| si pas de genusname c'est donc "family" (11 cas).  |||| "order" for the #143 Unidentified butterfly */
-
-
 /*
 VISIT PARTICPANTS AGGREGATES IN ONE FILED
 */
 CREATE VIEW IPT_SEBMS_VISITPARTICIPANTS AS
-select vip_vis_visitid, string_agg(DISTINCT cast(vip_per_participantid as text), ',') AS participantsList
+select vip_vis_visitid, string_agg(DISTINCT cast(vip_per_participantid as text), '|') AS participantsList
 FROM vip_visitparticipant 
 GROUP by vip_vis_visitid;
 

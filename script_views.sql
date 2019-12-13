@@ -79,9 +79,11 @@ OCCURENCES
 
 To be fixed:
  - locationID : LATER ON maybe stationsregistret ??
- - informationWithheld : mention the protected species ? @Annelie
+ - informationWithheld : mention the protected species ? 
 
 AS recordedBy,  liste potentielle !! => LEFT JOIN avec visitParticipant pas suffisant ??. Séparer les IDs de participants avec des | 
+
+speciesAggregate => spe_semainname that contains / (except 180 => family because no genusname)
 */
 
 CREATE VIEW IPT_SEBMS_OCCURENCE AS
@@ -90,7 +92,7 @@ CONCAT('SEBMS',':',VIS.vis_uid) AS eventID,
 'HumanObservation' AS basisOfRecord,
 CASE 
 	WHEN spe_uid=143 THEN 'order' 
-	WHEN spe_uid IN (142, 144) THEN 'speciesAggregate' 
+	WHEN spe_uid IN (131, 132, 133, 134, 137, 139, 172, 175, 181, 183, 184) THEN 'speciesAggregate' 
 	WHEN (spe_genusname='' or spe_genusname is NULL) THEN 'family' 
 	ELSE 'species' 
 END AS taxonRank, 
@@ -114,6 +116,7 @@ AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
+AND OBS.obs_count>0
 GROUP BY eventID, spe_uid, sit_type, recordedBy
 
 /*
@@ -140,8 +143,8 @@ To be fixed:
 CREATE VIEW IPT_SEBMS_EMOF AS
 SELECT
 DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
-'Site category' AS measurementType,
-CASE WHEN SIT.sit_type='P' THEN 'Point/Punkt' WHEN SIT.sit_type='T' THEN 'Transect/Sling' END AS measurementValue,
+'Site type' AS measurementType,
+CASE WHEN SIT.sit_type='P' THEN 'Point/Punkt' WHEN SIT.sit_type='T' THEN 'Transect/Slinga' END AS measurementValue,
 '' AS measurementUnit
 FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS
 WHERE  OBS.obs_vis_visitid = VIS.vis_uid
@@ -216,7 +219,24 @@ AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
-AND VIS.vis_windspeed IS NOT NULL;
+AND VIS.vis_windspeed IS NOT NULL
+UNION
+SELECT
+eventId, 
+'ZeroObservation' AS measurementType,
+'true' AS measurementValue,
+'' AS measurementUnit
+FROM IPT_SEBMS_SAMPLING SA
+WHERE  eventId NOT IN (SELECT DISTINCT eventId FROM IPT_SEBMS_OCCURENCE)
+UNION
+SELECT
+eventId, 
+'ZeroObservation' AS measurementType,
+'false' AS measurementValue,
+'' AS measurementUnit
+FROM IPT_SEBMS_SAMPLING SA
+WHERE  eventId IN (SELECT DISTINCT eventId FROM IPT_SEBMS_OCCURENCE)
+;
 
 
 /*

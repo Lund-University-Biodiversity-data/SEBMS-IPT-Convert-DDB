@@ -1,5 +1,10 @@
-/* HIDDEN SPECIES */
+DROP VIEW IF EXISTS IPT_SEBMS_EMOF;
+DROP VIEW IF EXISTS IPT_SEBMS_OCCURENCE;
+DROP VIEW IF EXISTS IPT_SEBMS_SAMPLING;
+DROP VIEW IF EXISTS IPT_SEBMS_VISITPARTICIPANTS;
+DROP VIEW IF EXISTS IPT_SEBMS_HIDDENSPECIES;
 
+/* HIDDEN SPECIES */
 CREATE VIEW IPT_SEBMS_HIDDENSPECIES AS
 SELECT * FROM spe_species
 WHERE spe_dyntaxa in (101510); /* mnemosyne */
@@ -53,7 +58,8 @@ AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT NULL
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
-ORDER BY eventID
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
+ORDER BY eventID;
 
 
 
@@ -117,7 +123,8 @@ AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
 AND OBS.obs_count>0
-GROUP BY eventID, spe_uid, sit_type, recordedBy
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
+GROUP BY eventID, spe_uid, sit_type, recordedBy;
 
 /*
 // hide the species to protect
@@ -156,6 +163,7 @@ AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
 AND SIT.sit_type IS NOT NULL
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
 DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
@@ -172,6 +180,7 @@ AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_sunshine IS NOT NULL
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
 DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
@@ -188,6 +197,7 @@ AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_temperature IS NOT NULL
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
 DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
@@ -204,6 +214,7 @@ AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_winddirection IS NOT NULL
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
 DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
@@ -220,6 +231,7 @@ AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_windspeed IS NOT NULL
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
 eventId, 

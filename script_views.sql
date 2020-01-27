@@ -118,7 +118,7 @@ CASE
 END AS informationWithheld,
 VP.participantsList as recordedBy
 FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS
-LEFT JOIN IPT_SEBMS_VISITPARTICIPANTS VP on VIS.vis_uid=VP.vip_vis_visitid
+LEFT JOIN IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS VP on VIS.vis_uid=VP.vip_vis_visitid
 WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  

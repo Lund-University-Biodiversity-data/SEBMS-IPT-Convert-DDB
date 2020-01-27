@@ -1,13 +1,16 @@
 \c sebms
 
-DROP VIEW IF EXISTS IPT_SEBMS_EMOF;
-DROP VIEW IF EXISTS IPT_SEBMS_OCCURENCE;
-DROP VIEW IF EXISTS IPT_SEBMS_SAMPLING;
-DROP VIEW IF EXISTS IPT_SEBMS_VISITPARTICIPANTS;
-DROP VIEW IF EXISTS IPT_SEBMS_HIDDENSPECIES;
+DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_EMOF;
+DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_OCCURENCE;
+DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_SAMPLING;
+DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS;
+DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES;
+
+DROP SCHEMA IF EXISTS IPT_SEBMS;
+CREATE SCHEMA IPT_SEBMS;
 
 /* HIDDEN SPECIES */
-CREATE VIEW IPT_SEBMS_HIDDENSPECIES AS
+CREATE VIEW IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES AS
 SELECT * FROM spe_species
 WHERE spe_dyntaxa in (101510); /* mnemosyne */
 
@@ -28,7 +31,7 @@ Constants:
  - diffusion 1000     => create a function with parameter ?
 */
 
-CREATE VIEW IPT_SEBMS_SAMPLING AS
+CREATE VIEW IPT_SEBMS.IPT_SEBMS_SAMPLING AS
 SELECT DISTINCT VIS.vis_uid,
 CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
 'https://www.dagfjarilar.lu.se/hur-gor-man/viktiga-filer#handledning' AS samplingProtocol,
@@ -59,7 +62,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT NULL
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
+AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 ORDER BY eventID;
 
@@ -68,7 +71,7 @@ ORDER BY eventID;
 /*
 VISIT PARTICPANTS AGGREGATES IN ONE FILED
 */
-CREATE VIEW IPT_SEBMS_VISITPARTICIPANTS AS
+CREATE VIEW IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS AS
 select vip_vis_visitid, string_agg(DISTINCT cast(vip_per_participantid as text), '|') AS participantsList
 FROM vip_visitparticipant 
 GROUP by vip_vis_visitid;
@@ -94,7 +97,7 @@ AS recordedBy,  liste potentielle !! => LEFT JOIN avec visitParticipant pas suff
 speciesAggregate => spe_semainname that contains / (except 180 => family because no genusname)
 */
 
-CREATE VIEW IPT_SEBMS_OCCURENCE AS
+CREATE VIEW IPT_SEBMS.IPT_SEBMS_OCCURENCE AS
 SELECT 
 CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
 'HumanObservation' AS basisOfRecord,
@@ -123,7 +126,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
+AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND OBS.obs_count>0
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 GROUP BY eventID, spe_uid, sit_type, recordedBy;
@@ -135,7 +138,7 @@ AND spe_isconfidential = false
 */
 
 /*
-CREATE VIEW IPT_SEBMS_TAXON AS
+CREATE VIEW IPT_SEBMS.IPT_SEBMS_TAXON AS
 SELECT spe_dyntaxa AS taxonID, spe_familyname AS scientificName, 'species' AS taxonRank, '' AS kingdom, '' AS parentNameUsageID, "" AS acceptedNameUsageID
 FROM spe_species
 WHERE 1; 
@@ -149,7 +152,7 @@ To be fixed:
 
 */
 
-CREATE VIEW IPT_SEBMS_EMOF AS
+CREATE VIEW IPT_SEBMS.IPT_SEBMS_EMOF AS
 SELECT
 DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
 'Site type' AS measurementType,
@@ -163,7 +166,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
+AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND SIT.sit_type IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
@@ -180,7 +183,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
+AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_sunshine IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
@@ -197,7 +200,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
+AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_temperature IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
@@ -214,7 +217,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
+AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_winddirection IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
@@ -231,7 +234,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS_HIDDENSPECIES H)
+AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_windspeed IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
@@ -240,16 +243,16 @@ eventId,
 'ZeroObservation' AS measurementType,
 'true' AS measurementValue,
 '' AS measurementUnit
-FROM IPT_SEBMS_SAMPLING SA
-WHERE  eventId NOT IN (SELECT DISTINCT eventId FROM IPT_SEBMS_OCCURENCE)
+FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
+WHERE  eventId NOT IN (SELECT DISTINCT eventId FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
 UNION
 SELECT
 eventId, 
 'ZeroObservation' AS measurementType,
 'false' AS measurementValue,
 '' AS measurementUnit
-FROM IPT_SEBMS_SAMPLING SA
-WHERE  eventId IN (SELECT DISTINCT eventId FROM IPT_SEBMS_OCCURENCE)
+FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
+WHERE  eventId IN (SELECT DISTINCT eventId FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
 ;
 
 

@@ -45,13 +45,13 @@ sit_reg_provinceid AS stateProvince,
 sit_reg_countyid AS county,
 sit_reg_municipalityid AS municipality,
 'WGS84' AS geodeticDatum,
-ST_Y(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_R1000, RT90_lat_R1000), 3021), 4326)) AS decimalLatitude,
-ST_X(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_R1000, RT90_lat_R1000), 3021), 4326)) AS decimalLongitude,
+ST_Y(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLatitude,
+ST_X(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLongitude,
 'SE' AS countryCode
 FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS,
 (
-	SELECT sit_uid, ROUND(sit_geort90lat/1000)*1000 AS RT90_lat_R1000,
-	ROUND(sit_geort90lon/1000)*1000 AS RT90_lon_R1000
+	SELECT sit_uid, sit_geort90lat AS RT90_lat_diffusion,
+	sit_geort90lon AS RT90_lon_diffusion
 	FROM sit_site	
 ) as ROUNDED_sites 
 WHERE ROUNDED_sites.sit_uid=SIT.sit_uid
@@ -66,6 +66,12 @@ AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 ORDER BY eventID;
 
+/* to create a diffusion of 1km:
+	SELECT sit_uid, ROUND(sit_geort90lat/1000)*1000 AS RT90_lat_diffusion,
+	ROUND(sit_geort90lon/1000)*1000 AS RT90_lon_diffusion
+	FROM sit_site
+
+*/
 
 
 /*
@@ -100,6 +106,7 @@ speciesAggregate => spe_semainname that contains / (except 180 => family because
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_OCCURENCE AS
 SELECT 
 CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
+CONCAT('SEBMS',':',OBS.obs_uid) AS occurenceID, 
 'HumanObservation' AS basisOfRecord,
 CASE 
 	WHEN spe_uid=143 THEN 'order' 
@@ -156,7 +163,7 @@ CREATE VIEW IPT_SEBMS.IPT_SEBMS_EMOF AS
 SELECT
 DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
 'Site type' AS measurementType,
-CASE WHEN SIT.sit_type='P' THEN 'Point/Punkt' WHEN SIT.sit_type='T' THEN 'Transect/Slinga' END AS measurementValue,
+CASE WHEN SIT.sit_type='P' THEN 'Point site' WHEN SIT.sit_type='T' THEN 'Transect site' END AS measurementValue,
 '' AS measurementUnit
 FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS
 WHERE  OBS.obs_vis_visitid = VIS.vis_uid
@@ -239,20 +246,20 @@ AND VIS.vis_windspeed IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
-eventId, 
+eventID, 
 'ZeroObservation' AS measurementType,
 'true' AS measurementValue,
 '' AS measurementUnit
 FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
-WHERE  eventId NOT IN (SELECT DISTINCT eventId FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
+WHERE  eventID NOT IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
 UNION
 SELECT
-eventId, 
+eventID, 
 'ZeroObservation' AS measurementType,
 'false' AS measurementValue,
 '' AS measurementUnit
 FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
-WHERE  eventId IN (SELECT DISTINCT eventId FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
+WHERE  eventID IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
 ;
 
 

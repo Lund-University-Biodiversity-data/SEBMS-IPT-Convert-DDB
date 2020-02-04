@@ -106,7 +106,7 @@ speciesAggregate => spe_semainname that contains / (except 180 => family because
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_OCCURENCE AS
 SELECT 
 CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
-CONCAT('SEBMS',':',OBS.obs_uid) AS occurenceID, 
+CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_dyntaxa) AS occurenceID, 
 'HumanObservation' AS basisOfRecord,
 CASE 
 	WHEN spe_uid=143 THEN 'order' 
@@ -136,7 +136,7 @@ AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND OBS.obs_count>0
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
-GROUP BY eventID, spe_uid, sit_type, recordedBy;
+GROUP BY eventID, occurenceID, spe_uid, sit_type, recordedBy;
 
 /*
 // hide the species to protect

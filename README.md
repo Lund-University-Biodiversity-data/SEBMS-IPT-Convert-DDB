@@ -16,8 +16,6 @@ GRANT SELECT ON ALL TABLES IN SCHEMA ipt_sebms TO ipt_sql_20 ;
 ´´´
 
 
-
-
 sudo apt-get install postgis
 
 ´´´

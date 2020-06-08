@@ -10,7 +10,7 @@ sudo -u postgres psql ipt_sebms < script_views.sql
 
 
 ´´´
-\c sebms
+\c ipt_sebms
 GRANT USAGE ON SCHEMA ipt_sebms TO ipt_sql_20;
 GRANT SELECT ON ALL TABLES IN SCHEMA ipt_sebms TO ipt_sql_20 ;
 ´´´

@@ -33,27 +33,39 @@ Constants:
 
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_SAMPLING AS
 SELECT DISTINCT VIS.vis_uid,
-CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
+CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'https://www.dagfjarilar.lu.se/hur-gor-man/viktiga-filer#handledning' AS samplingProtocol,
 CAST(VIS.vis_begintime as date) AS eventDate,  
+EXTRACT (doy from  VIS.vis_begintime) AS startDayOfYear,
+EXTRACT (doy from  VIS.vis_endtime) AS endDayOfYear,
 CASE 
 	WHEN VIS.vis_begintime=VIS.vis_endtime THEN right(CAST(VIS.vis_begintime as TEXT), length(CAST(VIS.vis_begintime as TEXT)) - 11) 
 	ELSE CONCAT(right(CAST(VIS.vis_begintime as TEXT), length(CAST(VIS.vis_begintime as TEXT)) - 11) ,'/',right(CAST(VIS.vis_endtime as TEXT), length(CAST(VIS.vis_endtime as TEXT)) - 11) ) 
 END AS eventTime,
-SIT.sit_uid AS locationID,
-sit_reg_provinceid AS stateProvince,
-sit_reg_countyid AS county,
-sit_reg_municipalityid AS municipality,
+CONCAT('SEBMS',':siteId:',SIT.sit_uid) AS locationID, 
+REG_COU.reg_name AS county,
+REG_PRO.reg_name AS province,
+REG_MUN.reg_name AS municipality,
 'WGS84' AS geodeticDatum,
 ST_Y(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLatitude,
 ST_X(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLongitude,
-'SE' AS countryCode
-FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS,
+'SE' AS countryCode,
+'EUROPE' AS continent,
+CASE 
+	WHEN SIT.sit_type='T' then 1000 
+	WHEN SIT.sit_type='P' then 25 
+END AS coordinateUncertaintyInMeters,
+NOW() AS modified,
+SIT.sit_name AS locality
+FROM spe_species SPE, obs_observation OBS, seg_segment SEG, vis_visit VIS,
 (
 	SELECT sit_uid, sit_geort90lat AS RT90_lat_diffusion,
 	sit_geort90lon AS RT90_lon_diffusion
 	FROM sit_site	
-) as ROUNDED_sites 
+) as ROUNDED_sites,
+sit_site SIT left join reg_region REG_MUN on REG_MUN.reg_uid = sit_reg_municipalityid
+left join reg_region REG_COU on REG_COU.reg_uid = sit_reg_countyid
+left join reg_region REG_PRO on REG_PRO.reg_uid = sit_reg_provinceid
 WHERE ROUNDED_sites.sit_uid=SIT.sit_uid
 AND OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
@@ -116,14 +128,26 @@ CASE
 END AS taxonRank, 
 'Animalia' AS kingdom,
 SUM(OBS.obs_count) AS individualCount, /* SUM per site !!!  ***/
-SPE.spe_dyntaxa AS taxonID,
+CONCAT('SEBMS:dyntaxa.se: ',SPE.spe_dyntaxa) AS taxonID,
+CONCAT('SEBMS:dyntaxa.se: ',SPE.spe_dyntaxa) AS taxonConceptID,
 CONCAT(SPE.spe_genusname, ' ', SPE.spe_speciesname) AS scientificName,
+SPE.spe_originalnameusage AS originalNameUsage,
+SPE.spe_higherclassification AS higherClassification,
 SPE.spe_familyname AS family,
 CASE 
-	WHEN SIT.sit_type='T' then 'SUM of the different segments' 
-	else ''
+	WHEN SIT.sit_type='T' then 'SUM of the different segments. More information can be obtained from the Data Provider.' 
+	else 'More information can be obtained from the Data Provider.'
 END AS informationWithheld,
-VP.participantsList as recordedBy
+CONCAT('SEBMS:recorderId: ',VP.participantsList) as recordedBy,
+'Validated' as identificationVerificationStatus,
+'Occurence' as type,
+'English' as language,
+'Free usage' as accessRights,
+'Presence' as occurrenceStatus,
+SPE.spe_semainname as vernacularName,
+'Lund University' AS institutionCode,
+'SEBMS' AS collectionCode,
+CONCAT('SEBMS:datasetID:LU') AS datasetID
 FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS
 LEFT JOIN IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS VP on VIS.vis_uid=VP.vip_vis_visitid
 WHERE  OBS.obs_vis_visitid = VIS.vis_uid

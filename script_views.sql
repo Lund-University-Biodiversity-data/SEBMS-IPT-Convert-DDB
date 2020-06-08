@@ -117,8 +117,7 @@ speciesAggregate => spe_semainname that contains / (except 180 => family because
 
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_OCCURENCE AS
 SELECT 
-CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_dyntaxa) AS recordId, 
-CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
+CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_dyntaxa) AS occurenceID, 
 'HumanObservation' AS basisOfRecord,
 CASE 
@@ -186,7 +185,7 @@ To be fixed:
 
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_EMOF AS
 SELECT
-DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
+DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Site type' AS measurementType,
 CASE WHEN SIT.sit_type='P' THEN 'Point site' WHEN SIT.sit_type='T' THEN 'Transect site' END AS measurementValue,
 '' AS measurementUnit
@@ -203,7 +202,7 @@ AND SIT.sit_type IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
-DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
+DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Sunshine' AS measurementType,
 CAST(VIS.vis_sunshine AS text) AS measurementValue,
 '%' AS measurementUnit
@@ -220,7 +219,7 @@ AND VIS.vis_sunshine IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
-DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
+DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Temperature' AS measurementType,
 CAST(VIS.vis_temperature AS text) AS measurementValue,
 '°C' AS measurementUnit
@@ -237,7 +236,7 @@ AND VIS.vis_temperature IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
-DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
+DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Wind direction' AS measurementType,
 CAST(VIS.vis_winddirection AS text) AS measurementValue,
 'angular degrees' AS measurementUnit
@@ -254,7 +253,7 @@ AND VIS.vis_winddirection IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 UNION
 SELECT
-DISTINCT CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
+DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Wind Speed' AS measurementType,
 CAST(VIS.vis_windspeed AS text) AS measurementValue,
 'm/s' AS measurementUnit

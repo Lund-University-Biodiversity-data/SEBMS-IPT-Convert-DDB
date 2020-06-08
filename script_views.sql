@@ -117,8 +117,8 @@ speciesAggregate => spe_semainname that contains / (except 180 => family because
 
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_OCCURENCE AS
 SELECT 
-CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
 CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_dyntaxa) AS occurenceID, 
+CONCAT('SEBMS',':',VIS.vis_uid) AS eventID, 
 'HumanObservation' AS basisOfRecord,
 CASE 
 	WHEN spe_uid=143 THEN 'order' 

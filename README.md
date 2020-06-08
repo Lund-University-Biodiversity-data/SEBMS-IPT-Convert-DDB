@@ -2,6 +2,7 @@
 Convert SEBMS database to IPT format
 
 ´´´
+DROP DATABASE ipt_sebms;
 CREATE DATABASE ipt_sebms;
 ´´´
 

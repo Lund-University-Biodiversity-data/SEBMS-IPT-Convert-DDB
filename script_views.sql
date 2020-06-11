@@ -128,17 +128,17 @@ CASE
 END AS taxonRank, 
 'Animalia' AS kingdom,
 SUM(OBS.obs_count) AS individualCount, /* SUM per site !!!  ***/
-CONCAT('SEBMS:dyntaxa.se: ',SPE.spe_dyntaxa) AS taxonID,
-CONCAT('SEBMS:dyntaxa.se: ',SPE.spe_dyntaxa) AS taxonConceptID,
+CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa) AS taxonID,
+CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa) AS taxonConceptID,
 CONCAT(SPE.spe_genusname, ' ', SPE.spe_speciesname) AS scientificName,
 SPE.spe_originalnameusage AS originalNameUsage,
 SPE.spe_higherclassification AS higherClassification,
 SPE.spe_familyname AS family,
 CASE 
-	WHEN SIT.sit_type='T' then 'SUM of the different segments. More information can be obtained from the Data Provider.' 
+	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. More information can be obtained from the Data Provider.' 
 	else 'More information can be obtained from the Data Provider.'
 END AS informationWithheld,
-CONCAT('SEBMS:recorderId: ',VP.participantsList) as recordedBy,
+CONCAT('SEBMS:recorderId:',VP.participantsList) as recordedBy,
 'Validated' as identificationVerificationStatus,
 'Occurence' as type,
 'English' as language,

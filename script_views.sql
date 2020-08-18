@@ -71,7 +71,7 @@ AND OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)
+AND VIS.vis_typ_datasourceid IN (54)
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT NULL
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
@@ -154,7 +154,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
+AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
@@ -194,7 +194,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
+AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
@@ -211,7 +211,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
+AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
@@ -228,7 +228,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
+AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
@@ -245,7 +245,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
+AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
@@ -262,7 +262,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54,55,56,63,64,66,67)	
+AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort90lon IS NOT NULL
 AND SIT.sit_geort90lat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)

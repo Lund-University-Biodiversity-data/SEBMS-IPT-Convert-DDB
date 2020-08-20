@@ -59,8 +59,8 @@ NOW() AS modified,
 SIT.sit_name AS locality
 FROM spe_species SPE, obs_observation OBS, seg_segment SEG, vis_visit VIS,
 (
-	SELECT sit_uid, sit_geort90lat AS RT90_lat_diffusion,
-	sit_geort90lon AS RT90_lon_diffusion
+	SELECT sit_uid, sit_geort9025gonvlat AS RT90_lat_diffusion,
+	sit_geort9025gonvlon AS RT90_lon_diffusion
 	FROM sit_site	
 ) as ROUNDED_sites,
 sit_site SIT left join reg_region REG_MUN on REG_MUN.reg_uid = sit_reg_municipalityid
@@ -72,15 +72,15 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (54)
-AND SIT.sit_geort90lon IS NOT NULL
-AND SIT.sit_geort90lat IS NOT NULL
+AND SIT.sit_geort9025gonvlon IS NOT NULL
+AND SIT.sit_geort9025gonvlat IS NOT NULL
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
 ORDER BY eventID;
 
 /* to create a diffusion of 1km:
-	SELECT sit_uid, ROUND(sit_geort90lat/1000)*1000 AS RT90_lat_diffusion,
-	ROUND(sit_geort90lon/1000)*1000 AS RT90_lon_diffusion
+	SELECT sit_uid, ROUND(sit_geort9025gonvlat/1000)*1000 AS RT90_lat_diffusion,
+	ROUND(sit_geort9025gonvlon/1000)*1000 AS RT90_lon_diffusion
 	FROM sit_site
 
 */
@@ -155,8 +155,8 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (54)	
-AND SIT.sit_geort90lon IS NOT NULL
-AND SIT.sit_geort90lat IS NOT null
+AND SIT.sit_geort9025gonvlon IS NOT NULL
+AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND OBS.obs_count>0
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
@@ -195,8 +195,8 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (54)	
-AND SIT.sit_geort90lon IS NOT NULL
-AND SIT.sit_geort90lat IS NOT null
+AND SIT.sit_geort9025gonvlon IS NOT NULL
+AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND SIT.sit_type IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
@@ -212,8 +212,8 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (54)	
-AND SIT.sit_geort90lon IS NOT NULL
-AND SIT.sit_geort90lat IS NOT null
+AND SIT.sit_geort9025gonvlon IS NOT NULL
+AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_sunshine IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
@@ -229,8 +229,8 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (54)	
-AND SIT.sit_geort90lon IS NOT NULL
-AND SIT.sit_geort90lat IS NOT null
+AND SIT.sit_geort9025gonvlon IS NOT NULL
+AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_temperature IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
@@ -246,8 +246,8 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (54)	
-AND SIT.sit_geort90lon IS NOT NULL
-AND SIT.sit_geort90lat IS NOT null
+AND SIT.sit_geort9025gonvlon IS NOT NULL
+AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_winddirection IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018
@@ -263,8 +263,8 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (54)	
-AND SIT.sit_geort90lon IS NOT NULL
-AND SIT.sit_geort90lat IS NOT null
+AND SIT.sit_geort9025gonvlon IS NOT NULL
+AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_windspeed IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2018

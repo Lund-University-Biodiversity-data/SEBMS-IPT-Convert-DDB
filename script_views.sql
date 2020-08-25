@@ -140,7 +140,7 @@ CASE
 END AS informationWithheld,
 CONCAT('SEBMS:recorderId:',VP.participantsList) as recordedBy,
 'Validated' as identificationVerificationStatus,
-'Occurence' as type,
+'Event' as type,
 'English' as language,
 'Free usage' as accessRights,
 'Presence' as occurrenceStatus,

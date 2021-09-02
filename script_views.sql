@@ -3,8 +3,11 @@
  - the datasource list 
  - the date filter
 */
+\i lib/config.sql
 
-\c ipt_sebms
+\c :database_name
+
+\set year_max 2019 
 
 DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_EMOF;
 DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_OCCURENCE;
@@ -40,21 +43,27 @@ Constants:
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_SAMPLING AS
 SELECT DISTINCT VIS.vis_uid,
 CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-'https://www.dagfjarilar.lu.se/hur-gor-man/viktiga-filer#handledning' AS samplingProtocol,
+CASE 
+	WHEN SIT.sit_type='T' then 'Fixed route Pollard walk transect. https://www.dagfjarilar.lu.se/hur-gor-man/viktiga-filer#handledning' 
+	WHEN SIT.sit_type='P' then 'Point site count. https://www.dagfjarilar.lu.se/hur-gor-man/viktiga-filer#handledning' 
+END  AS samplingProtocol,
+SIT.sit_type AS siteType,
 CAST(VIS.vis_begintime as date) AS eventDate,  
-EXTRACT (doy from  VIS.vis_begintime) AS startDayOfYear,
-EXTRACT (doy from  VIS.vis_endtime) AS endDayOfYear,
+CAST(EXTRACT (doy from  VIS.vis_begintime) AS INTEGER) AS startDayOfYear,
+CAST(EXTRACT (doy from  VIS.vis_endtime) AS INTEGER)  AS endDayOfYear,
 CASE 
 	WHEN VIS.vis_begintime=VIS.vis_endtime THEN right(CAST(VIS.vis_begintime as TEXT), length(CAST(VIS.vis_begintime as TEXT)) - 11) 
 	ELSE CONCAT(right(CAST(VIS.vis_begintime as TEXT), length(CAST(VIS.vis_begintime as TEXT)) - 11) ,'/',right(CAST(VIS.vis_endtime as TEXT), length(CAST(VIS.vis_endtime as TEXT)) - 11) ) 
 END AS eventTime,
-CONCAT('SEBMS',':siteId:',SIT.sit_uid) AS locationID, 
+CONCAT('http://stationsregister.miljodatasamverkan.se/so/ef/environmentalmonitoringfacility/pp/', SIT.sit_nat_stn_reg) AS locationId,
+CONCAT('SEBMS',':siteId:',SIT.sit_uid) AS internalSiteId, 
 REG_COU.reg_name AS county,
 REG_PRO.reg_name AS province,
 REG_MUN.reg_name AS municipality,
-'WGS84' AS geodeticDatum,
+'EPSG:4326' AS geodeticDatum,
 ST_Y(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLatitude,
 ST_X(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLongitude,
+'Sweden' AS country,
 'SE' AS countryCode,
 'EUROPE' AS continent,
 CASE 
@@ -62,7 +71,10 @@ CASE
 	WHEN SIT.sit_type='P' then 25 
 END AS coordinateUncertaintyInMeters,
 NOW() AS modified,
-SIT.sit_name AS locality
+SIT.sit_name AS locality,
+'Dataset' as type,
+'English' as language,
+'Free usage' as accessRights
 FROM spe_species SPE, obs_observation OBS, seg_segment SEG, vis_visit VIS,
 (
 	SELECT sit_uid, sit_geort9025gonvlat AS RT90_lat_diffusion,
@@ -81,7 +93,7 @@ AND VIS.vis_typ_datasourceid IN (54)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT NULL
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
-AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2019
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 ORDER BY eventID;
 
 /* to create a diffusion of 1km:
@@ -133,23 +145,23 @@ CASE
 	ELSE 'species' 
 END AS taxonRank, 
 'Animalia' AS kingdom,
-SUM(OBS.obs_count) AS individualCount, /* SUM per site !!!  ***/
+SUM(OBS.obs_count) AS organismQuantity, /* SUM per site !!!  ***/
+'individuals' AS organismQuantityType,
 CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa) AS taxonID,
 CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa) AS taxonConceptID,
 CONCAT(SPE.spe_genusname, ' ', SPE.spe_speciesname) AS scientificName,
 SPE.spe_originalnameusage AS originalNameUsage,
 SPE.spe_higherclassification AS higherClassification,
 SPE.spe_familyname AS family,
+SPE.spe_genusname AS genus,
+SPE.spe_speciesname AS specificEpithet,
 CASE 
 	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. More information can be obtained from the Data Provider.' 
 	else 'More information can be obtained from the Data Provider.'
 END AS informationWithheld,
 CONCAT('SEBMS:recorderId:',VP.participantsList) as recordedBy,
 'Validated' as identificationVerificationStatus,
-'Event' as type,
-'English' as language,
-'Free usage' as accessRights,
-'Presence' as occurrenceStatus,
+'Present' as occurrenceStatus,
 SPE.spe_semainname as vernacularName,
 'Lund University' AS institutionCode,
 'SEBMS' AS collectionCode,
@@ -165,7 +177,7 @@ AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND OBS.obs_count>0
-AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2019
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 GROUP BY eventID, occurenceID, spe_uid, sit_type, recordedBy;
 
 /*
@@ -190,6 +202,7 @@ To be fixed:
 */
 
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_EMOF AS
+
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Site type' AS measurementType,
@@ -205,8 +218,10 @@ AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND SIT.sit_type IS NOT NULL
-AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2019
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+
 UNION
+
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Sunshine' AS measurementType,
@@ -222,8 +237,10 @@ AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_sunshine IS NOT NULL
-AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2019
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+
 UNION
+
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Temperature' AS measurementType,
@@ -239,13 +256,15 @@ AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_temperature IS NOT NULL
-AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2019
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+
 UNION
+
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Wind direction' AS measurementType,
 CAST(VIS.vis_winddirection AS text) AS measurementValue,
-'angular degrees' AS measurementUnit
+'compass degrees' AS measurementUnit
 FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS
 WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
@@ -256,8 +275,10 @@ AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_winddirection IS NOT NULL
-AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2019
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+
 UNION
+
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 'Wind Speed' AS measurementType,
@@ -273,23 +294,49 @@ AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND VIS.vis_windspeed IS NOT NULL
-AND EXTRACT(YEAR FROM VIS.vis_begintime) <= 2019
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+
 UNION
+
 SELECT
 eventID, 
-'ZeroObservation' AS measurementType,
+'Null visit' AS measurementType,
 'true' AS measurementValue,
 '' AS measurementUnit
 FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
 WHERE  eventID NOT IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
+
 UNION
+
 SELECT
 eventID, 
-'ZeroObservation' AS measurementType,
+'Null visit' AS measurementType,
 'false' AS measurementValue,
 '' AS measurementUnit
 FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
 WHERE  eventID IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
+
+UNION
+
+SELECT
+eventID, 
+'Internal site id' AS measurementType,
+internalSiteId AS measurementValue,
+'' AS measurementUnit
+FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
+
+UNION
+
+SELECT
+DISTINCT eventID,
+'Site geometry' AS measurementType,
+CASE 
+	WHEN siteType='P' THEN 'Point'
+	WHEN siteType='T' THEN 'Line'
+END AS measurementValue,
+'' AS measurementUnit
+FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
+
 ;
 
 

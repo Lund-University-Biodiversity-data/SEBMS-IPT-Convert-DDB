@@ -7,6 +7,7 @@ CREATE DATABASE ipt_sebms;
 ´´´
 
 sudo -u postgres psql ipt_sebms < ../../backup/SQL/2020-02-04.sebms.sql
+sudo -u postgres psql ipt_sebms < sebms_annex_create_nat_stn_reg.sql
 sudo -u postgres psql ipt_sebms < script_views.sql
 
 

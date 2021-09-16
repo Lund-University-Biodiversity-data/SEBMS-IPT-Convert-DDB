@@ -24,3 +24,4 @@ sudo apt-get install postgis
 \c sebms
 CREATE EXTENSION postgis;
 ´´´
+

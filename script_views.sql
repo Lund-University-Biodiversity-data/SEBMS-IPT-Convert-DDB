@@ -12,6 +12,7 @@
 DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_EMOF;
 DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_OCCURENCE;
 DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_SAMPLING;
+DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_EVENTSNOOBS;
 DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS;
 DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES;
 
@@ -22,6 +23,56 @@ CREATE SCHEMA IPT_SEBMS;
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES AS
 SELECT * FROM spe_species
 WHERE spe_dyntaxa in (101510); /* mnemosyne */
+
+
+/*
+VISIT PARTICPANTS AGGREGATES IN ONE FILED
+*/
+CREATE VIEW IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS AS
+select vip_vis_visitid, string_agg(DISTINCT cast(vip_per_participantid as text), '|') AS participantsList
+FROM vip_visitparticipant 
+GROUP by vip_vis_visitid;
+
+
+
+CREATE VIEW IPT_SEBMS.IPT_SEBMS_EVENTSNOOBS AS
+SELECT 
+VIS.vis_uid,
+CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID
+FROM spe_species SPE, obs_observation OBS, seg_segment SEG, vis_visit VIS,
+(
+	SELECT sit_uid, sit_geort9025gonvlat AS RT90_lat_diffusion,
+	sit_geort9025gonvlon AS RT90_lon_diffusion
+	FROM sit_site	
+) as ROUNDED_sites,
+sit_site SIT left join reg_region REG_MUN on REG_MUN.reg_uid = sit_reg_municipalityid
+left join reg_region REG_COU on REG_COU.reg_uid = sit_reg_countyid
+left join reg_region REG_PRO on REG_PRO.reg_uid = sit_reg_provinceid
+WHERE ROUNDED_sites.sit_uid=SIT.sit_uid
+AND OBS.obs_vis_visitid = VIS.vis_uid
+AND OBS.obs_spe_speciesid = SPE.spe_uid
+AND OBS.obs_seg_segmentid = SEG.seg_uid  
+AND SEG.seg_sit_siteid = SIT.sit_uid 
+AND VIS.vis_typ_datasourceid IN (54)
+AND SIT.sit_geort9025gonvlon IS NOT NULL
+AND SIT.sit_geort9025gonvlat IS NOT NULL
+AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+AND VIS.vis_uid NOT IN (
+	select DISTINCT VIS.vis_uid
+    FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS
+	LEFT JOIN IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS VP on VIS.vis_uid=VP.vip_vis_visitid
+	WHERE  OBS.obs_vis_visitid = VIS.vis_uid
+	AND OBS.obs_spe_speciesid = SPE.spe_uid
+	AND OBS.obs_seg_segmentid = SEG.seg_uid  
+	AND SEG.seg_sit_siteid = SIT.sit_uid 
+	AND VIS.vis_typ_datasourceid IN (54)	
+	AND SIT.sit_geort9025gonvlon IS NOT NULL
+	AND SIT.sit_geort9025gonvlat IS NOT null
+	AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+	AND OBS.obs_count>0
+	AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+);
 
 
 /*
@@ -104,13 +155,6 @@ ORDER BY eventID;
 */
 
 
-/*
-VISIT PARTICPANTS AGGREGATES IN ONE FILED
-*/
-CREATE VIEW IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS AS
-select vip_vis_visitid, string_agg(DISTINCT cast(vip_per_participantid as text), '|') AS participantsList
-FROM vip_visitparticipant 
-GROUP by vip_vis_visitid;
 
 
 
@@ -178,7 +222,64 @@ AND SIT.sit_geort9025gonvlat IS NOT null
 AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
 AND OBS.obs_count>0
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
-GROUP BY eventID, occurenceID, spe_uid, sit_type, recordedBy;
+
+GROUP BY eventID, occurenceID, spe_uid, sit_type, recordedBy
+
+UNION
+
+SELECT 
+CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
+CONCAT('SEBMS',':',VIS.vis_uid,':null') AS occurenceID, 
+'HumanObservation' AS basisOfRecord,
+'species' AS taxonRank, 
+'Animalia' AS kingdom,
+0 AS organismQuantity, 
+'individuals' AS organismQuantityType,
+'urn:lsid:dyntaxa.se:Taxon:3000188' AS taxonID,
+'urn:lsid:dyntaxa.se:Taxon:3000188' AS taxonConceptID,
+'Lepidoptera' AS scientificName,
+'' AS originalNameUsage,
+'' AS higherClassification,
+'' AS family,
+'' AS genus,
+'' AS specificEpithet,
+CASE 
+	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. More information can be obtained from the Data Provider.' 
+	else 'More information can be obtained from the Data Provider.'
+END AS informationWithheld,
+CONCAT('SEBMS:recorderId:',VP.participantsList) as recordedBy,
+'Validated' as identificationVerificationStatus,
+'Absent' as occurrenceStatus,
+'ButterfliesAndMothsIncludedInSurvey' as vernacularName,
+'Lund University' AS institutionCode,
+'SEBMS' AS collectionCode,
+CONCAT('SEBMS:datasetID:LU') AS datasetID
+FROM IPT_SEBMS.IPT_SEBMS_EVENTSNOOBS NO, sit_site SIT, vis_visit VIS
+LEFT JOIN IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS VP on VIS.vis_uid=VP.vip_vis_visitid
+WHERE NO.vis_uid=VIS.vis_uid
+AND VIS.vis_sit_siteid=SIT.sit_uid
+AND VIS.vis_typ_datasourceid IN (54)	
+AND SIT.sit_geort9025gonvlon IS NOT NULL
+AND SIT.sit_geort9025gonvlat IS NOT null
+AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max;
+
+
+
+
+
+
+/*
+ver 1.9 // Add events without observations (these are listed in eMoF with "True")
+, set scientificName to Lepidoptera, 
+taxonId to 3000188, 
+vernacularName to ButterfliesAndMothsIncludedInSurvey,
+ occurrenceStatus to absent, 
+ organismQuantity to 0, organismQuantityType to individuals, 
+ basisOfRecord to HumanObservation, 
+ occurrenceID to SEBMS:"eventId":null (Coll.code:vis_uid:null).
+
+*/
+
 
 /*
 // hide the species to protect
@@ -304,7 +405,7 @@ eventID,
 'true' AS measurementValue,
 '' AS measurementUnit
 FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
-WHERE  eventID NOT IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
+WHERE  eventID IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_EVENTSNOOBS)
 
 UNION
 
@@ -314,7 +415,7 @@ eventID,
 'false' AS measurementValue,
 '' AS measurementUnit
 FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
-WHERE  eventID IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE)
+WHERE  eventID NOT IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_EVENTSNOOBS)
 
 UNION
 

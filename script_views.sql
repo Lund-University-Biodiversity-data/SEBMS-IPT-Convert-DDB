@@ -56,7 +56,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT NULL
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 AND VIS.vis_uid NOT IN (
 	select DISTINCT VIS.vis_uid
@@ -69,7 +69,7 @@ AND VIS.vis_uid NOT IN (
 	AND VIS.vis_typ_datasourceid IN (54)	
 	AND SIT.sit_geort9025gonvlon IS NOT NULL
 	AND SIT.sit_geort9025gonvlat IS NOT null
-	AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+	AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 	AND OBS.obs_count>0
 	AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 );
@@ -143,7 +143,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT NULL
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 ORDER BY eventID;
 
@@ -182,12 +182,7 @@ SELECT
 CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
 CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_dyntaxa) AS occurenceID, 
 'HumanObservation' AS basisOfRecord,
-CASE 
-	WHEN spe_uid=143 THEN 'order' 
-	WHEN spe_uid IN (131, 132, 133, 134, 137, 139, 172, 175, 181, 183, 184) THEN 'speciesAggregate' 
-	WHEN (spe_genusname='' or spe_genusname is NULL) THEN 'family' 
-	ELSE 'species' 
-END AS taxonRank, 
+spe_taxonrank AS taxonRank, 
 'Animalia' AS kingdom,
 SUM(OBS.obs_count) AS organismQuantity, /* SUM per site !!!  ***/
 'individuals' AS organismQuantityType,
@@ -219,7 +214,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND OBS.obs_count>0
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 
@@ -317,7 +312,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND SIT.sit_type IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 
@@ -336,7 +331,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND VIS.vis_sunshine IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 
@@ -355,7 +350,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND VIS.vis_temperature IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 
@@ -374,7 +369,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND VIS.vis_winddirection IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 
@@ -393,7 +388,7 @@ AND SEG.seg_sit_siteid = SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (54)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
-AND SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H)
+AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND VIS.vis_windspeed IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 

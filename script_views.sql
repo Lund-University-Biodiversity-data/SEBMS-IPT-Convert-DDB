@@ -29,7 +29,7 @@ WHERE spe_dyntaxa in (101510); /* mnemosyne */
 VISIT PARTICPANTS AGGREGATES IN ONE FILED
 */
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS AS
-select vip_vis_visitid, string_agg(DISTINCT cast(vip_per_participantid as text), '|') AS participantsList
+select vip_vis_visitid, string_agg(DISTINCT CONCAT('SEBMS:recorderId:',cast(vip_per_participantid as text)), '|') AS participantsList
 FROM vip_visitparticipant 
 GROUP by vip_vis_visitid;
 
@@ -53,7 +53,7 @@ AND OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54)
+AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT NULL
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
@@ -66,7 +66,7 @@ AND VIS.vis_uid NOT IN (
 	AND OBS.obs_spe_speciesid = SPE.spe_uid
 	AND OBS.obs_seg_segmentid = SEG.seg_uid  
 	AND SEG.seg_sit_siteid = SIT.sit_uid 
-	AND VIS.vis_typ_datasourceid IN (54)	
+	AND VIS.vis_typ_datasourceid IN (:datasources)	
 	AND SIT.sit_geort9025gonvlon IS NOT NULL
 	AND SIT.sit_geort9025gonvlat IS NOT null
 	AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
@@ -102,9 +102,18 @@ SIT.sit_type AS siteType,
 CAST(VIS.vis_begintime as date) AS eventDate,  
 CAST(EXTRACT (doy from  VIS.vis_begintime) AS INTEGER) AS startDayOfYear,
 CAST(EXTRACT (doy from  VIS.vis_endtime) AS INTEGER)  AS endDayOfYear,
+CASE
+	WHEN vis.vis_isfullvisit=false THEN 'The site was not completely surveyed during this visit.'
+	ELSE ''
+END AS eventRemarks,
 CASE 
-	WHEN VIS.vis_begintime=VIS.vis_endtime THEN right(CAST(VIS.vis_begintime as TEXT), length(CAST(VIS.vis_begintime as TEXT)) - 11) 
-	ELSE CONCAT(right(CAST(VIS.vis_begintime as TEXT), length(CAST(VIS.vis_begintime as TEXT)) - 11) ,'/',right(CAST(VIS.vis_endtime as TEXT), length(CAST(VIS.vis_endtime as TEXT)) - 11) ) 
+	WHEN VIS.vis_begintime=VIS.vis_endtime THEN 
+		CASE
+			WHEN right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) = '00:00:00'
+			THEN NULL
+			ELSE right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) 
+		END
+	ELSE CONCAT(right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) ,'/',right(CAST(VIS.vis_endtime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_endtime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) ) 
 END AS eventTime,
 CONCAT('http://stationsregister.miljodatasamverkan.se/so/ef/environmentalmonitoringfacility/pp/', SIT.sit_nat_stn_reg) AS locationId,
 CONCAT('SEBMS',':siteId:',SIT.sit_uid) AS internalSiteId, 
@@ -140,7 +149,7 @@ AND OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54)
+AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT NULL
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
@@ -180,25 +189,35 @@ speciesAggregate => spe_semainname that contains / (except 180 => family because
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_OCCURENCE AS
 SELECT 
 CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_dyntaxa) AS occurenceID, 
+CASE 
+	WHEN (SPE.spe_dyntaxa IS NULL) THEN CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_uid)
+	else CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_dyntaxa) 
+END AS occurenceID, 
 'HumanObservation' AS basisOfRecord,
 spe_taxonrank AS taxonRank, 
 'Animalia' AS kingdom,
 SUM(OBS.obs_count) AS organismQuantity, /* SUM per site !!!  ***/
 'individuals' AS organismQuantityType,
-CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa) AS taxonID,
-CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa) AS taxonConceptID,
-CONCAT(SPE.spe_genusname, ' ', SPE.spe_speciesname) AS scientificName,
-SPE.spe_originalnameusage AS originalNameUsage,
-SPE.spe_higherclassification AS higherClassification,
+CASE 
+	WHEN (SPE.spe_dyntaxa IS NULL) THEN ''
+	else CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa)
+END AS taxonID,
+CASE 
+	WHEN (SPE.spe_dyntaxa IS NULL) THEN ''
+	else CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa)
+END AS taxonConceptID,
+SPE.spe_scientificname AS scientificName,
+/*SPE.spe_originalnameusage AS originalNameUsage,
+SPE.spe_higherclassification AS higherClassification,*/
 SPE.spe_familyname AS family,
 SPE.spe_genusname AS genus,
 SPE.spe_speciesname AS specificEpithet,
 CASE 
-	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. More information can be obtained from the Data Provider.' 
-	else 'More information can be obtained from the Data Provider.'
+	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne). Site coordinates represent the centroid midpoint for the transect site.' 
+	WHEN SIT.sit_type='P' then 'Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne). Site coordinates represent the midpoint for the point site.'
+	ELSE ''
 END AS informationWithheld,
-CONCAT('SEBMS:recorderId:',VP.participantsList) as recordedBy,
+VP.participantsList as recordedBy,
 'Validated' as identificationVerificationStatus,
 'Present' as occurrenceStatus,
 SPE.spe_semainname as vernacularName,
@@ -211,7 +230,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54)	
+AND VIS.vis_typ_datasourceid IN (:datasources)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
@@ -224,28 +243,29 @@ UNION
 
 SELECT 
 CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-CONCAT('SEBMS',':',VIS.vis_uid,':null') AS occurenceID, 
+CONCAT('SEBMS',':',VIS.vis_uid,':3000188') AS occurenceID, 
 'HumanObservation' AS basisOfRecord,
-'species' AS taxonRank, 
+'order' AS taxonRank, 
 'Animalia' AS kingdom,
 0 AS organismQuantity, 
 'individuals' AS organismQuantityType,
 'urn:lsid:dyntaxa.se:Taxon:3000188' AS taxonID,
 'urn:lsid:dyntaxa.se:Taxon:3000188' AS taxonConceptID,
 'Lepidoptera' AS scientificName,
-'' AS originalNameUsage,
-'' AS higherClassification,
+/*'' AS originalNameUsage,
+'Biota;Animalia;Arthropoda;Hexapoda;Insecta' AS higherClassification,*/
 '' AS family,
 '' AS genus,
 '' AS specificEpithet,
 CASE 
-	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. More information can be obtained from the Data Provider.' 
-	else 'More information can be obtained from the Data Provider.'
+	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne). Site coordinates represent the centroid midpoint for the transect site.' 
+	WHEN SIT.sit_type='P' then 'Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne). Site coordinates represent the midpoint for the point site.'
+	ELSE ''
 END AS informationWithheld,
 CONCAT('SEBMS:recorderId:',VP.participantsList) as recordedBy,
-'Validated' as identificationVerificationStatus,
+'' as identificationVerificationStatus,
 'Absent' as occurrenceStatus,
-'ButterfliesAndMothsIncludedInSurvey' as vernacularName,
+'SpeciesIncludedInSurvey' as vernacularName,
 'Lund University' AS institutionCode,
 'SEBMS' AS collectionCode,
 CONCAT('SEBMS:datasetID:LU') AS datasetID
@@ -253,7 +273,7 @@ FROM IPT_SEBMS.IPT_SEBMS_EVENTSNOOBS NO, sit_site SIT, vis_visit VIS
 LEFT JOIN IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS VP on VIS.vis_uid=VP.vip_vis_visitid
 WHERE NO.vis_uid=VIS.vis_uid
 AND VIS.vis_sit_siteid=SIT.sit_uid
-AND VIS.vis_typ_datasourceid IN (54)	
+AND VIS.vis_typ_datasourceid IN (:datasources)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max;
@@ -309,7 +329,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54)	
+AND VIS.vis_typ_datasourceid IN (:datasources)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
@@ -328,7 +348,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54)	
+AND VIS.vis_typ_datasourceid IN (:datasources)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
@@ -347,7 +367,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54)	
+AND VIS.vis_typ_datasourceid IN (:datasources)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
@@ -366,7 +386,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54)	
+AND VIS.vis_typ_datasourceid IN (:datasources)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
@@ -377,7 +397,7 @@ UNION
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-'Wind Speed' AS measurementType,
+'Wind speed' AS measurementType,
 CAST(VIS.vis_windspeed AS text) AS measurementValue,
 'm/s' AS measurementUnit
 FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS
@@ -385,7 +405,7 @@ WHERE  OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
-AND VIS.vis_typ_datasourceid IN (54)	
+AND VIS.vis_typ_datasourceid IN (:datasources)	
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))

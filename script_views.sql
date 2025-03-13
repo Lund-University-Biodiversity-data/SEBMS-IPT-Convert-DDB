@@ -7,7 +7,7 @@
 
 \c :database_name
 
-\set year_max 2020 
+\set year_max 2023 
 
 DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_EMOF;
 DROP VIEW IF EXISTS IPT_SEBMS.IPT_SEBMS_OCCURENCE;
@@ -86,6 +86,7 @@ and VIS.vis_sit_siteid = SIT.sit_uid
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT NULL
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
 AND VIS.vis_uid NOT IN (
 	select DISTINCT VIS.vis_uid
@@ -116,12 +117,44 @@ Constants:
 CREATE VIEW IPT_SEBMS.IPT_SEBMS_SAMPLING AS
 SELECT DISTINCT VIS.vis_uid,
 CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
+CONCAT('SEBMS:datasetID:54') AS datasetID,
+'Swedish Butterfly Monitoring Scheme' AS datasetname,
+/*
 CASE 
-	WHEN SIT.sit_type='T' then 'Fixed route Pollard walk transect. https://www.dagfjarilar.lu.se/hur-gor-man/viktiga-filer#handledning' 
-	WHEN SIT.sit_type='P' then 'Point site count. https://www.dagfjarilar.lu.se/hur-gor-man/viktiga-filer#handledning' 
-END  AS samplingProtocol,
+    WHEN (vis.vis_isfullvisit = true) THEN
+        CASE
+            WHEN (sit.sit_type = 'T') THEN null::real
+            WHEN (sit.sit_type = 'P') THEN 1963.5
+            ELSE NULL::real
+        END
+    ELSE null::real
+END AS sampleSizeValue,
+CASE 
+    WHEN (vis.vis_isfullvisit = true) THEN
+        CASE
+            WHEN (sit.sit_type = 'T') THEN null::text 
+            WHEN (sit.sit_type = 'P') THEN 'square metre'
+            ELSE NULL::text
+        END
+    ELSE null
+END AS sampleSizeUnit,
+CASE 
+    WHEN (vis.vis_isfullvisit = true) THEN
+        CASE
+		    WHEN (sit.sit_type = 'T') THEN null::text 
+		    WHEN (sit.sit_type = 'P') THEN '15 minutes' 
+		    ELSE NULL::text
+	    END
+	ELSE null 
+END AS samplingEffort,
+*/
+CASE
+    WHEN (sit.sit_type = 'T') THEN 'Fixed route Pollard walk transect'::text
+    WHEN (sit.sit_type = 'P') THEN 'Point site count'::text
+    ELSE NULL::text
+END AS samplingprotocol,
 SIT.sit_type AS siteType,
-CAST(VIS.vis_begintime as date) AS eventDate,  
+CONCAT(TO_CHAR(VIS.vis_begintime :: DATE, 'yyyy-mm-dd'), '/', TO_CHAR(VIS.vis_endtime :: DATE, 'yyyy-mm-dd')) AS eventDate,  
 CAST(EXTRACT (doy from  VIS.vis_begintime) AS INTEGER) AS startDayOfYear,
 CAST(EXTRACT (doy from  VIS.vis_endtime) AS INTEGER)  AS endDayOfYear,
 CASE
@@ -133,18 +166,20 @@ CASE
 		CASE
 			WHEN right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) = '00:00:00'
 			THEN NULL
-			ELSE right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) 
+			ELSE TO_CHAR(VIS.vis_begintime, 'HH24:MI:SS TZH') 
 		END
-	ELSE CONCAT(right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) ,'/',right(CAST(VIS.vis_endtime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_endtime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) ) 
+	ELSE CONCAT(TO_CHAR(VIS.vis_begintime, 'HH24:MI:SS TZH') ,'/',TO_CHAR(VIS.vis_endtime, 'HH24:MI:SS TZH') ) 
 END AS eventTime,
-CONCAT('http://stationsregister.miljodatasamverkan.se/so/ef/environmentalmonitoringfacility/os/', SIT.sit_nat_stn_reg) AS locationId,
-CONCAT('SEBMS',':siteId:',SIT.sit_uid) AS internalSiteId, 
+SIT.sit_nat_stn_reg AS locationId,
+SIT.sit_name AS verbatimLocality,
+CONCAT('SEBMS',':siteId:',SIT.sit_uid) AS locality, 
 REG_COU.reg_name AS county,
-REG_PRO.reg_name AS province,
+REG_PRO.reg_name AS stateProvince,
 REG_MUN.reg_name AS municipality,
 'EPSG:4326' AS geodeticDatum,
-ST_Y(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLatitude,
-ST_X(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLongitude,
+ROUND(sit_geowgs84lat, 5) AS decimalLatitude,
+ROUND(sit_geowgs84lon, 5) AS decimalLongitude,
+'EPSG:3857' AS verbatimSRS,
 'Sweden' AS country,
 'SE' AS countryCode,
 'EUROPE' AS continent,
@@ -152,22 +187,26 @@ CASE
 	WHEN SIT.sit_type='T' then 1000 
 	WHEN SIT.sit_type='P' then 25 
 END AS coordinateUncertaintyInMeters,
+CASE
+    WHEN (sit.sit_type = 'T') THEN 'Site coordinates represent the centroid midpoint for the transect site.' 
+    WHEN (sit.sit_type = 'P') THEN 'Site coordinates represent the midpoint for the point site.' 
+    ELSE NULL::text
+END AS locationRemarks,
 NOW() AS modified,
-SIT.sit_name AS locality,
-'Dataset' as type,
+CASE 
+	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne).' 
+	WHEN SIT.sit_type='P' then 'Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne).'
+	ELSE ''
+END AS informationWithheld,
 'English' as language,
-'Free usage' as accessRights
+'Limited' as accessRights,
+'Lund University' AS institutionCode,
+'Swedish Environmental Protection Agency' AS ownerInstitutionCode
 FROM spe_species SPE, obs_observation OBS, seg_segment SEG, vis_visit VIS,
-(
-	SELECT sit_uid, sit_geort9025gonvlat AS RT90_lat_diffusion,
-	sit_geort9025gonvlon AS RT90_lon_diffusion
-	FROM sit_site	
-) as ROUNDED_sites,
 sit_site SIT left join reg_region REG_MUN on REG_MUN.reg_uid = sit_reg_municipalityid
 left join reg_region REG_COU on REG_COU.reg_uid = sit_reg_countyid
 left join reg_region REG_PRO on REG_PRO.reg_uid = sit_reg_provinceid
-WHERE ROUNDED_sites.sit_uid=SIT.sit_uid
-AND OBS.obs_vis_visitid = VIS.vis_uid
+WHERE OBS.obs_vis_visitid = VIS.vis_uid
 AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
@@ -175,6 +214,7 @@ AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT NULL
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
@@ -184,12 +224,44 @@ UNION
 
 SELECT DISTINCT VIS.vis_uid,
 CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
+CONCAT('SEBMS:datasetID:54') AS datasetID,
+'Swedish Butterfly Monitoring Scheme' AS datasetname,
+/*
 CASE 
-	WHEN SIT.sit_type='T' then 'Fixed route Pollard walk transect. https://www.dagfjarilar.lu.se/hur-gor-man/viktiga-filer#handledning' 
-	WHEN SIT.sit_type='P' then 'Point site count. https://www.dagfjarilar.lu.se/hur-gor-man/viktiga-filer#handledning' 
-END  AS samplingProtocol,
+    WHEN (vis.vis_isfullvisit = true) THEN
+        CASE
+            WHEN (sit.sit_type = 'T') THEN null::real 
+            WHEN (sit.sit_type = 'P') THEN 1963.5 
+            ELSE NULL::real
+        END
+    ELSE null::real
+END AS sampleSizeValue,
+CASE 
+    WHEN (vis.vis_isfullvisit = true) THEN
+        CASE
+            WHEN (sit.sit_type = 'T') THEN null::text 
+            WHEN (sit.sit_type = 'P') THEN 'square metre' 
+            ELSE NULL::text
+        END
+    ELSE null
+END AS sampleSizeUnit,
+CASE 
+    WHEN (vis.vis_isfullvisit = true) THEN
+        CASE
+		    WHEN (sit.sit_type = 'T') THEN null::text 
+		    WHEN (sit.sit_type = 'P') THEN '15 minutes' 
+		    ELSE NULL::text
+	    END
+	ELSE null 
+END AS samplingEffort,
+*/
+CASE
+    WHEN (sit.sit_type = 'T') THEN 'Fixed route Pollard walk transect'::text
+    WHEN (sit.sit_type = 'P') THEN 'Point site count'::text
+    ELSE NULL::text
+END AS samplingprotocol,
 SIT.sit_type AS siteType,
-CAST(VIS.vis_begintime as date) AS eventDate,  
+CONCAT(TO_CHAR(VIS.vis_begintime :: DATE, 'yyyy-mm-dd'), '/', TO_CHAR(VIS.vis_endtime :: DATE, 'yyyy-mm-dd')) AS eventDate,  
 CAST(EXTRACT (doy from  VIS.vis_begintime) AS INTEGER) AS startDayOfYear,
 CAST(EXTRACT (doy from  VIS.vis_endtime) AS INTEGER)  AS endDayOfYear,
 CASE
@@ -201,18 +273,20 @@ CASE
 		CASE
 			WHEN right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) = '00:00:00'
 			THEN NULL
-			ELSE right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) 
+			ELSE TO_CHAR(VIS.vis_begintime, 'HH24:MI:SS TZH') 
 		END
-	ELSE CONCAT(right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) ,'/',right(CAST(VIS.vis_endtime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_endtime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) ) 
+	ELSE CONCAT(TO_CHAR(VIS.vis_begintime, 'HH24:MI:SS TZH') ,'/',TO_CHAR(VIS.vis_endtime, 'HH24:MI:SS TZH') ) 
 END AS eventTime,
-CONCAT('http://stationsregister.miljodatasamverkan.se/so/ef/environmentalmonitoringfacility/os/', SIT.sit_nat_stn_reg) AS locationId,
-CONCAT('SEBMS',':siteId:',SIT.sit_uid) AS internalSiteId, 
+SIT.sit_nat_stn_reg AS locationId,
+SIT.sit_name AS verbatimLocality,
+CONCAT('SEBMS',':siteId:',SIT.sit_uid) AS locality, 
 REG_COU.reg_name AS county,
-REG_PRO.reg_name AS province,
+REG_PRO.reg_name AS stateProvince,
 REG_MUN.reg_name AS municipality,
 'EPSG:4326' AS geodeticDatum,
-ST_Y(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLatitude,
-ST_X(ST_Transform(ST_SetSRID(ST_Point(RT90_lon_diffusion, RT90_lat_diffusion), 3021), 4326)) AS decimalLongitude,
+ROUND(sit_geowgs84lat, 5) AS decimalLatitude,
+ROUND(sit_geowgs84lon, 5) AS decimalLongitude,
+'EPSG:3857' AS verbatimSRS,
 'Sweden' AS country,
 'SE' AS countryCode,
 'EUROPE' AS continent,
@@ -220,27 +294,31 @@ CASE
 	WHEN SIT.sit_type='T' then 1000 
 	WHEN SIT.sit_type='P' then 25 
 END AS coordinateUncertaintyInMeters,
+CASE
+    WHEN (sit.sit_type = 'T') THEN 'Site coordinates represent the centroid midpoint for the transect site.' 
+    WHEN (sit.sit_type = 'P') THEN 'Site coordinates represent the midpoint for the point site.' 
+    ELSE NULL::text
+END AS locationRemarks,
 NOW() AS modified,
-SIT.sit_name AS locality,
-'Dataset' as type,
+CASE 
+	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne).' 
+	WHEN SIT.sit_type='P' then 'Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne).'
+	ELSE ''
+END AS informationWithheld,
 'English' as language,
-'Free usage' as accessRights
-FROM seg_segment SEG, vis_visit VIS,
-(
-	SELECT sit_uid, sit_geort9025gonvlat AS RT90_lat_diffusion,
-	sit_geort9025gonvlon AS RT90_lon_diffusion
-	FROM sit_site	
-) as ROUNDED_sites,
-sit_site SIT left join reg_region REG_MUN on REG_MUN.reg_uid = sit_reg_municipalityid
+'Limited' as accessRights,
+'Lund University' AS institutionCode,
+'Swedish Environmental Protection Agency' AS ownerInstitutionCode
+FROM seg_segment SEG, vis_visit VIS, sit_site SIT left join reg_region REG_MUN on REG_MUN.reg_uid = sit_reg_municipalityid
 left join reg_region REG_COU on REG_COU.reg_uid = sit_reg_countyid
 left join reg_region REG_PRO on REG_PRO.reg_uid = sit_reg_provinceid
-WHERE ROUNDED_sites.sit_uid=SIT.sit_uid
-and VIS.vis_sit_siteid = SIT.sit_uid 
+WHERE VIS.vis_sit_siteid = SIT.sit_uid 
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT NULL
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 and VIS.vis_uid in (select vis_uid from IPT_SEBMS.IPT_SEBMS_EVENTSNOOBS)
@@ -290,32 +368,29 @@ spe_taxonrank AS taxonRank,
 'Animalia' AS kingdom,
 SUM(OBS.obs_count) AS organismQuantity, /* SUM per site !!!  ***/
 'individuals' AS organismQuantityType,
+SUM(OBS.obs_count) AS individualCount, /* SUM per site !!!  ***/
 CASE 
 	WHEN (SPE.spe_dyntaxa IS NULL) THEN ''
 	else CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa)
 END AS taxonID,
-CASE 
-	WHEN (SPE.spe_dyntaxa IS NULL) THEN ''
-	else CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa)
-END AS taxonConceptID,
 SPE.spe_scientificname AS scientificName,
+REPLACE(REPLACE(SPE.spe_auctor, ')', ''), '(', '') AS scientificNameAutorship,
+SPE.spe_eurotaxa AS euTaxonID, /* in emof */
 /*SPE.spe_originalnameusage AS originalNameUsage,
 SPE.spe_higherclassification AS higherClassification,*/
 SPE.spe_familyname AS family,
-SPE.spe_genusname AS genus,
-SPE.spe_speciesname AS specificEpithet,
-CASE 
-	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne). Site coordinates represent the centroid midpoint for the transect site.' 
-	WHEN SIT.sit_type='P' then 'Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne). Site coordinates represent the midpoint for the point site.'
-	ELSE ''
-END AS informationWithheld,
+split_part(spe_scientificname, ' ', 1) AS genus,
+split_part(spe_scientificname, ' ', 2) AS specificEpithet,
 VP.participantsList as recordedBy,
 'Validated' as identificationVerificationStatus,
 'Present' as occurrenceStatus,
 SPE.spe_semainname as vernacularName,
-'Lund University' AS institutionCode,
-'SEBMS' AS collectionCode,
-CONCAT('SEBMS:datasetID:54') AS datasetID
+CASE 
+	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from the surveyed segments of the transect site.' 
+	WHEN SIT.sit_type='P' then 'The number of individuals observed is the sum total from the whole point site.'
+	ELSE ''
+END AS occurrenceRemarks,
+'SEBMS' AS collectionCode
 FROM spe_species SPE, sit_site SIT, obs_observation OBS, seg_segment SEG, vis_visit VIS
 LEFT JOIN IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS VP on VIS.vis_uid=VP.vip_vis_visitid
 WHERE  OBS.obs_vis_visitid = VIS.vis_uid
@@ -326,6 +401,7 @@ AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND OBS.obs_count>0
@@ -343,26 +419,26 @@ CONCAT('SEBMS',':',VIS.vis_uid,':3000188') AS occurenceID,
 'Animalia' AS kingdom,
 0 AS organismQuantity, 
 'individuals' AS organismQuantityType,
+0 AS individualCount, 
 'urn:lsid:dyntaxa.se:Taxon:3000188' AS taxonID,
-'urn:lsid:dyntaxa.se:Taxon:3000188' AS taxonConceptID,
 'Lepidoptera' AS scientificName,
+'' AS scientificNameAutorship,
+null AS euTaxonID, /* in emof */
 /*'' AS originalNameUsage,
 'Biota;Animalia;Arthropoda;Hexapoda;Insecta' AS higherClassification,*/
 '' AS family,
 '' AS genus,
 '' AS specificEpithet,
-CASE 
-	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne). Site coordinates represent the centroid midpoint for the transect site.' 
-	WHEN SIT.sit_type='P' then 'Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne). Site coordinates represent the midpoint for the point site.'
-	ELSE ''
-END AS informationWithheld,
 VP.participantsList as recordedBy,
 '' as identificationVerificationStatus,
 'Absent' as occurrenceStatus,
 'SpeciesIncludedInSurvey' as vernacularName,
-'Lund University' AS institutionCode,
-'SEBMS' AS collectionCode,
-CONCAT('SEBMS:datasetID:54') AS datasetID
+CASE 
+	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from the surveyed segments of the transect site.' 
+	WHEN SIT.sit_type='P' then 'The number of individuals observed is the sum total from the whole point site.'
+	ELSE ''
+END AS occurrenceRemarks,
+'SEBMS' AS collectionCode
 FROM IPT_SEBMS.IPT_SEBMS_EVENTSNOOBS NO, sit_site SIT, vis_visit VIS
 LEFT JOIN IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS VP on VIS.vis_uid=VP.vip_vis_visitid
 WHERE NO.vis_uid=VIS.vis_uid
@@ -371,6 +447,7 @@ AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max;
 
@@ -417,7 +494,8 @@ CREATE VIEW IPT_SEBMS.IPT_SEBMS_EMOF AS
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-'Site type' AS measurementType,
+null as occurenceID,
+'locationType' AS measurementType,
 CASE WHEN SIT.sit_type='P' THEN 'Point site' WHEN SIT.sit_type='T' THEN 'Transect site' END AS measurementValue,
 '' AS measurementUnit
 FROM sit_site SIT, vis_visit VIS
@@ -426,6 +504,7 @@ AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
 AND SIT.sit_type IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
@@ -434,7 +513,8 @@ UNION
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-'Sunshine' AS measurementType,
+null as occurenceID,
+'sunshine' AS measurementType,
 CAST(VIS.vis_sunshine AS text) AS measurementValue,
 '%' AS measurementUnit
 FROM sit_site SIT, vis_visit VIS
@@ -443,15 +523,17 @@ AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
-AND VIS.vis_sunshine IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+AND VIS.vis_sunshine IS NOT NULL
 
 UNION
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-'Temperature' AS measurementType,
+null as occurenceID,
+'airTemperature' AS measurementType,
 CAST(VIS.vis_temperature AS text) AS measurementValue,
 '°C' AS measurementUnit
 FROM sit_site SIT, vis_visit VIS
@@ -460,15 +542,17 @@ AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
-AND VIS.vis_temperature IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+AND VIS.vis_temperature IS NOT NULL
 
 UNION
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-'Wind direction' AS measurementType,
+null as occurenceID,
+'windDirection' AS measurementType,
 CAST(VIS.vis_winddirection AS text) AS measurementValue,
 'degrees' AS measurementUnit
 FROM sit_site SIT, vis_visit VIS
@@ -477,15 +561,17 @@ AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
-AND VIS.vis_winddirection IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+AND VIS.vis_winddirection IS NOT NULL
 
 UNION
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-'Wind strength' AS measurementType,
+null as occurenceID,
+'windStrength' AS measurementType,
 CONCAT (CAST(VIS.vis_windspeed AS text), ' Beaufort') AS measurementValue,
 '' AS measurementUnit
 FROM sit_site SIT, vis_visit VIS
@@ -494,15 +580,17 @@ AND VIS.vis_typ_datasourceid IN (:datasources)
 AND SIT.sit_geort9025gonvlon IS NOT NULL
 AND SIT.sit_geort9025gonvlat IS NOT null
 AND SIT.sit_isdeleted =false
+AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
-AND VIS.vis_windspeed IS NOT NULL
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
+AND VIS.vis_windspeed IS NOT NULL
 
 UNION
 
 SELECT
 eventID, 
-'Null visit' AS measurementType,
+null as occurenceID,
+'noObservations' AS measurementType,
 'true' AS measurementValue,
 '' AS measurementUnit
 FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
@@ -512,7 +600,8 @@ UNION
 
 SELECT
 eventID, 
-'Null visit' AS measurementType,
+null as occurenceID,
+'noObservations' AS measurementType,
 'false' AS measurementValue,
 '' AS measurementUnit
 FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
@@ -521,24 +610,23 @@ WHERE  eventID NOT IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_EVENTSNO
 UNION
 
 SELECT
-eventID, 
-'Internal site id' AS measurementType,
-internalSiteId AS measurementValue,
+null as eventID,
+occurenceID,
+'euTaxonID' AS measurementType,
+(euTaxonID::text) AS measurementValue,
 '' AS measurementUnit
-FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
+FROM IPT_SEBMS.IPT_SEBMS_OCCURENCE SA
+WHERE euTaxonID IS NOT NULL
 
-UNION
+UNION 
 
 SELECT
-DISTINCT eventID,
-'Site geometry' AS measurementType,
-CASE 
-	WHEN siteType='P' THEN 'Point'
-	WHEN siteType='T' THEN 'Line'
-END AS measurementValue,
+eventID, 
+null as occurenceID,
+'locationProtected' AS measurementType,
+'no' AS measurementValue,
 '' AS measurementUnit
 FROM IPT_SEBMS.IPT_SEBMS_SAMPLING SA
-
 ;
 
 

@@ -153,7 +153,6 @@ CASE
     WHEN (sit.sit_type = 'P') THEN 'Point site count'::text
     ELSE NULL::text
 END AS samplingprotocol,
-SIT.sit_type AS siteType,
 CONCAT(TO_CHAR(VIS.vis_begintime :: DATE, 'yyyy-mm-dd'), '/', TO_CHAR(VIS.vis_endtime :: DATE, 'yyyy-mm-dd')) AS eventDate,  
 CAST(EXTRACT (doy from  VIS.vis_begintime) AS INTEGER) AS startDayOfYear,
 CAST(EXTRACT (doy from  VIS.vis_endtime) AS INTEGER)  AS endDayOfYear,
@@ -192,7 +191,7 @@ CASE
     WHEN (sit.sit_type = 'P') THEN 'Site coordinates represent the midpoint for the point site.' 
     ELSE NULL::text
 END AS locationRemarks,
-NOW() AS modified,
+to_char (now()::timestamp at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS modified,
 CASE 
 	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne).' 
 	WHEN SIT.sit_type='P' then 'Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne).'
@@ -260,7 +259,6 @@ CASE
     WHEN (sit.sit_type = 'P') THEN 'Point site count'::text
     ELSE NULL::text
 END AS samplingprotocol,
-SIT.sit_type AS siteType,
 CONCAT(TO_CHAR(VIS.vis_begintime :: DATE, 'yyyy-mm-dd'), '/', TO_CHAR(VIS.vis_endtime :: DATE, 'yyyy-mm-dd')) AS eventDate,  
 CAST(EXTRACT (doy from  VIS.vis_begintime) AS INTEGER) AS startDayOfYear,
 CAST(EXTRACT (doy from  VIS.vis_endtime) AS INTEGER)  AS endDayOfYear,
@@ -299,7 +297,7 @@ CASE
     WHEN (sit.sit_type = 'P') THEN 'Site coordinates represent the midpoint for the point site.' 
     ELSE NULL::text
 END AS locationRemarks,
-NOW() AS modified,
+to_char (now()::timestamp at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS modified,
 CASE 
 	WHEN SIT.sit_type='T' then 'The number of individuals observed is the sum total from all the segments of the transect site. Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne).' 
 	WHEN SIT.sit_type='P' then 'Species with a security class 3 or higher (according to the Swedish species information centre (Artdatabanken)) are not shown in this dataset at present. Currently this concerns one species only, the Clouded Apollo, (Mnemosynefjäril; Parnassius mnemosyne).'
@@ -362,7 +360,7 @@ CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID,
 CASE 
 	WHEN (SPE.spe_dyntaxa IS NULL) THEN CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_uid)
 	else CONCAT('SEBMS',':',VIS.vis_uid,':',SPE.spe_dyntaxa) 
-END AS occurenceID, 
+END AS occurrenceID, 
 'HumanObservation' AS basisOfRecord,
 spe_taxonrank AS taxonRank, 
 'Animalia' AS kingdom,
@@ -374,7 +372,7 @@ CASE
 	else CONCAT('urn:lsid:dyntaxa.se:Taxon:',SPE.spe_dyntaxa)
 END AS taxonID,
 SPE.spe_scientificname AS scientificName,
-REPLACE(REPLACE(SPE.spe_auctor, ')', ''), '(', '') AS scientificNameAutorship,
+REPLACE(REPLACE(SPE.spe_auctor, ')', ''), '(', '') AS scientificNameAuthorship,
 SPE.spe_eurotaxa AS euTaxonID, /* in emof */
 /*SPE.spe_originalnameusage AS originalNameUsage,
 SPE.spe_higherclassification AS higherClassification,*/
@@ -407,13 +405,13 @@ AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dynt
 AND OBS.obs_count>0
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 
-GROUP BY eventID, occurenceID, spe_uid, sit_type, recordedBy
+GROUP BY eventID, occurrenceID, spe_uid, sit_type, recordedBy
 
 UNION
 
 SELECT 
 CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-CONCAT('SEBMS',':',VIS.vis_uid,':3000188') AS occurenceID, 
+CONCAT('SEBMS',':',VIS.vis_uid,':3000188') AS occurrenceID, 
 'HumanObservation' AS basisOfRecord,
 'order' AS taxonRank, 
 'Animalia' AS kingdom,
@@ -422,7 +420,7 @@ CONCAT('SEBMS',':',VIS.vis_uid,':3000188') AS occurenceID,
 0 AS individualCount, 
 'urn:lsid:dyntaxa.se:Taxon:3000188' AS taxonID,
 'Lepidoptera' AS scientificName,
-'' AS scientificNameAutorship,
+'' AS scientificNameAuthorship,
 null AS euTaxonID, /* in emof */
 /*'' AS originalNameUsage,
 'Biota;Animalia;Arthropoda;Hexapoda;Insecta' AS higherClassification,*/
@@ -494,7 +492,7 @@ CREATE VIEW IPT_SEBMS.IPT_SEBMS_EMOF AS
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-null as occurenceID,
+null as occurrenceID,
 'locationType' AS measurementType,
 CASE WHEN SIT.sit_type='P' THEN 'Point site' WHEN SIT.sit_type='T' THEN 'Transect site' END AS measurementValue,
 '' AS measurementUnit
@@ -513,7 +511,7 @@ UNION
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-null as occurenceID,
+null as occurrenceID,
 'sunshine' AS measurementType,
 CAST(VIS.vis_sunshine AS text) AS measurementValue,
 '%' AS measurementUnit
@@ -532,7 +530,7 @@ UNION
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-null as occurenceID,
+null as occurrenceID,
 'airTemperature' AS measurementType,
 CAST(VIS.vis_temperature AS text) AS measurementValue,
 '°C' AS measurementUnit
@@ -551,7 +549,7 @@ UNION
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-null as occurenceID,
+null as occurrenceID,
 'windDirection' AS measurementType,
 CAST(VIS.vis_winddirection AS text) AS measurementValue,
 'degrees' AS measurementUnit
@@ -570,7 +568,7 @@ UNION
 
 SELECT
 DISTINCT CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID, 
-null as occurenceID,
+null as occurrenceID,
 'windStrength' AS measurementType,
 CONCAT (CAST(VIS.vis_windspeed AS text), ' Beaufort') AS measurementValue,
 '' AS measurementUnit
@@ -589,7 +587,7 @@ UNION
 
 SELECT
 eventID, 
-null as occurenceID,
+null as occurrenceID,
 'noObservations' AS measurementType,
 'true' AS measurementValue,
 '' AS measurementUnit
@@ -600,7 +598,7 @@ UNION
 
 SELECT
 eventID, 
-null as occurenceID,
+null as occurrenceID,
 'noObservations' AS measurementType,
 'false' AS measurementValue,
 '' AS measurementUnit
@@ -610,8 +608,8 @@ WHERE  eventID NOT IN (SELECT DISTINCT eventID FROM IPT_SEBMS.IPT_SEBMS_EVENTSNO
 UNION
 
 SELECT
-null as eventID,
-occurenceID,
+eventID,
+occurrenceID,
 'euTaxonID' AS measurementType,
 (euTaxonID::text) AS measurementValue,
 '' AS measurementUnit
@@ -622,7 +620,7 @@ UNION
 
 SELECT
 eventID, 
-null as occurenceID,
+null as occurrenceID,
 'locationProtected' AS measurementType,
 'no' AS measurementValue,
 '' AS measurementUnit

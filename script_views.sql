@@ -42,8 +42,8 @@ VIS.vis_uid,
 CONCAT('SEBMS',':eventId:',VIS.vis_uid) AS eventID
 FROM spe_species SPE, obs_observation OBS, seg_segment SEG, vis_visit VIS,
 (
-	SELECT sit_uid, sit_geort9025gonvlat AS RT90_lat_diffusion,
-	sit_geort9025gonvlon AS RT90_lon_diffusion
+	SELECT sit_uid, sit_geowgs84lat AS RT90_lat_diffusion,
+	sit_geowgs84lon AS RT90_lon_diffusion
 	FROM sit_site	
 ) as ROUNDED_sites,
 sit_site SIT left join reg_region REG_MUN on REG_MUN.reg_uid = sit_reg_municipalityid
@@ -55,8 +55,8 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT NULL
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT NULL
 AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 AND VIS.vis_uid NOT IN (
@@ -68,8 +68,8 @@ AND VIS.vis_uid NOT IN (
 	AND OBS.obs_seg_segmentid = SEG.seg_uid  
 	AND SEG.seg_sit_siteid = SIT.sit_uid 
 	AND VIS.vis_typ_datasourceid IN (:datasources)	
-	AND SIT.sit_geort9025gonvlon IS NOT NULL
-	AND SIT.sit_geort9025gonvlat IS NOT null
+	AND SIT.sit_geowgs84lon IS NOT NULL
+	AND SIT.sit_geowgs84lat IS NOT null
 	AND (SPE.spe_dyntaxa is null OR SPE.spe_dyntaxa not in (select distinct spe_dyntaxa from IPT_SEBMS.IPT_SEBMS_HIDDENSPECIES H))
 	AND OBS.obs_count>0
 	AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
@@ -83,8 +83,8 @@ left join obs_observation OBS on OBS.obs_vis_visitid = VIS.vis_uid
 WHERE VIS.vis_typ_datasourceid IN (:datasources)
 AND EXTRACT(YEAR FROM VIS.vis_begintime) <= :year_max
 and VIS.vis_sit_siteid = SIT.sit_uid 
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT NULL
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT NULL
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
@@ -210,8 +210,8 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT NULL
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT NULL
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
@@ -313,8 +313,8 @@ left join reg_region REG_PRO on REG_PRO.reg_uid = sit_reg_provinceid
 WHERE VIS.vis_sit_siteid = SIT.sit_uid 
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT NULL
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT NULL
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
@@ -325,8 +325,8 @@ and VIS.vis_uid in (select vis_uid from IPT_SEBMS.IPT_SEBMS_EVENTSNOOBS)
 ORDER BY eventID;
 
 /* to create a diffusion of 1km:
-	SELECT sit_uid, ROUND(sit_geort9025gonvlat/1000)*1000 AS RT90_lat_diffusion,
-	ROUND(sit_geort9025gonvlon/1000)*1000 AS RT90_lon_diffusion
+	SELECT sit_uid, ROUND(sit_geowgs84lat/1000)*1000 AS RT90_lat_diffusion,
+	ROUND(sit_geowgs84lon/1000)*1000 AS RT90_lon_diffusion
 	FROM sit_site
 
 */
@@ -396,8 +396,8 @@ AND OBS.obs_spe_speciesid = SPE.spe_uid
 AND OBS.obs_seg_segmentid = SEG.seg_uid  
 AND SEG.seg_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)	
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT null
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT null
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
@@ -442,8 +442,8 @@ LEFT JOIN IPT_SEBMS.IPT_SEBMS_VISITPARTICIPANTS VP on VIS.vis_uid=VP.vip_vis_vis
 WHERE NO.vis_uid=VIS.vis_uid
 AND VIS.vis_sit_siteid=SIT.sit_uid
 AND VIS.vis_typ_datasourceid IN (:datasources)	
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT null
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT null
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
@@ -499,8 +499,8 @@ CASE WHEN SIT.sit_type='P' THEN 'Point site' WHEN SIT.sit_type='T' THEN 'Transec
 FROM sit_site SIT, vis_visit VIS
 WHERE  VIS.vis_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)	
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT null
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT null
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
@@ -518,8 +518,8 @@ CAST(VIS.vis_sunshine AS text) AS measurementValue,
 FROM sit_site SIT, vis_visit VIS
 WHERE  VIS.vis_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)	
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT null
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT null
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
@@ -537,8 +537,8 @@ CAST(VIS.vis_temperature AS text) AS measurementValue,
 FROM sit_site SIT, vis_visit VIS
 WHERE  VIS.vis_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)	
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT null
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT null
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
@@ -556,8 +556,8 @@ CAST(VIS.vis_winddirection AS text) AS measurementValue,
 FROM sit_site SIT, vis_visit VIS
 WHERE  VIS.vis_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)	
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT null
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT null
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false
@@ -575,8 +575,8 @@ CONCAT (CAST(VIS.vis_windspeed AS text), ' Beaufort') AS measurementValue,
 FROM sit_site SIT, vis_visit VIS
 WHERE  VIS.vis_sit_siteid = SIT.sit_uid 
 AND VIS.vis_typ_datasourceid IN (:datasources)	
-AND SIT.sit_geort9025gonvlon IS NOT NULL
-AND SIT.sit_geort9025gonvlat IS NOT null
+AND SIT.sit_geowgs84lon IS NOT NULL
+AND SIT.sit_geowgs84lat IS NOT null
 AND SIT.sit_isdeleted =false
 AND SIT.sit_ispublic =true
 AND VIS.vis_isdeleted =false

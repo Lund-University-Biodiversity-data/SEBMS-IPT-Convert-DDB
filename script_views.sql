@@ -160,13 +160,13 @@ CASE
 	WHEN vis.vis_isfullvisit=false THEN 'The site was not completely surveyed during this visit.'
 	ELSE ''
 END AS eventRemarks,
-CASE 
-	WHEN VIS.vis_begintime=VIS.vis_endtime THEN 
+/*
 		CASE
 			WHEN right(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT), length(CAST(VIS.vis_begintime AT TIME ZONE 'Europe/Paris' as TEXT)) - 11) = '00:00:00'
 			THEN NULL
-			ELSE TO_CHAR(VIS.vis_begintime, 'HH24:MI:SS TZH') 
-		END
+*/
+CASE 
+	WHEN VIS.vis_begintime=VIS.vis_endtime THEN TO_CHAR(VIS.vis_begintime, 'HH24:MI:SS TZH') 
 	ELSE CONCAT(TO_CHAR(VIS.vis_begintime, 'HH24:MI:SS TZH') ,'/',TO_CHAR(VIS.vis_endtime, 'HH24:MI:SS TZH') ) 
 END AS eventTime,
 SIT.sit_nat_stn_reg AS locationId,

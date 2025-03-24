@@ -6,7 +6,7 @@ DROP DATABASE ipt_sebms;
 CREATE DATABASE ipt_sebms;
 ´´´
 
-sudo -u postgres psql ipt_sebms < /home/mathieu/Downloads/2024-07-09.sebms/backup/SQL/2024-07-09.sebms.sql 
+sudo -u postgres psql ipt_sebms < /home/mathieu/Downloads/2025-03-24.sebms/backup/SQL/2025-03-24.sebms.sql 
 sudo -u postgres psql ipt_sebms < sebms_annex_create_nat_stn_reg.sql
 sudo -u postgres psql ipt_sebms < script_views.sql
 
